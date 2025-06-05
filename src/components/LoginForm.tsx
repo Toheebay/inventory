@@ -53,14 +53,34 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
         <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
+      {/* Welcoming cartoon character */}
+      <div className="absolute top-10 right-10 text-8xl animate-bounce">
+        🤖
+      </div>
+      <div className="absolute bottom-10 left-10 text-6xl animate-pulse">
+        📦
+      </div>
+      <div className="absolute top-1/4 left-1/4 text-4xl animate-spin">
+        ⭐
+      </div>
+
       <div className="relative z-10 w-full max-w-md mx-4">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg animate-pulse">
             <span className="text-3xl text-white">📦</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Inventory Pro</h1>
           <p className="text-gray-600">World-class inventory management system</p>
+          
+          {/* Welcome message with cartoon */}
+          <div className="mt-4 p-3 bg-yellow-100 rounded-xl border-2 border-yellow-300">
+            <div className="flex items-center justify-center space-x-2">
+              <span className="text-2xl">👋</span>
+              <p className="text-sm text-yellow-800 font-medium">Welcome! Ready to manage your inventory?</p>
+              <span className="text-2xl">😊</span>
+            </div>
+          </div>
         </div>
 
         {/* Login Form */}
@@ -109,45 +129,25 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
                   Signing In...
                 </div>
               ) : (
-                'Sign In'
+                <div className="flex items-center justify-center">
+                  <span className="mr-2">🚀</span>
+                  Sign In
+                </div>
               )}
             </button>
           </form>
 
           {/* Demo Credentials */}
           <div className="mt-6 p-4 bg-blue-50 rounded-xl border-l-4 border-blue-400">
-            <p className="text-sm text-blue-800 font-medium mb-1">Demo Credentials:</p>
+            <div className="flex items-center mb-1">
+              <span className="text-lg mr-2">🔑</span>
+              <p className="text-sm text-blue-800 font-medium">Demo Credentials:</p>
+            </div>
             <p className="text-sm text-blue-700">Username: <span className="font-mono bg-blue-100 px-1 rounded">admin</span></p>
             <p className="text-sm text-blue-700">Password: <span className="font-mono bg-blue-100 px-1 rounded">toheeb1</span></p>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes blob {
-          0% {
-            transform: translate(0px, 0px) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-          100% {
-            transform: translate(0px, 0px) scale(1);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
     </div>
   );
 };

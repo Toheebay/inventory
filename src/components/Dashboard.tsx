@@ -120,7 +120,18 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex relative overflow-hidden">
+      {/* Floating cartoon elements */}
+      <div className="absolute top-20 right-20 text-4xl animate-bounce z-10 pointer-events-none">
+        🎉
+      </div>
+      <div className="absolute bottom-20 right-40 text-3xl animate-pulse z-10 pointer-events-none">
+        💼
+      </div>
+      <div className="absolute top-1/3 right-10 text-2xl animate-spin z-10 pointer-events-none">
+        ⚡
+      </div>
+
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
@@ -138,12 +149,20 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="mb-8 bg-white/60 backdrop-blur-lg rounded-2xl p-6 shadow-lg border border-white/20">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                  {activeView === 'overview' && 'Dashboard Overview'}
-                  {activeView === 'products' && 'Product Management'}
-                  {activeView === 'add-product' && 'Add New Product'}
-                  {activeView === 'scanner' && 'Barcode Scanner'}
-                </h1>
+                <div className="flex items-center space-x-3">
+                  <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                    {activeView === 'overview' && 'Dashboard Overview'}
+                    {activeView === 'products' && 'Product Management'}
+                    {activeView === 'add-product' && 'Add New Product'}
+                    {activeView === 'scanner' && 'Barcode Scanner'}
+                  </h1>
+                  <span className="text-2xl animate-bounce">
+                    {activeView === 'overview' && '🌟'}
+                    {activeView === 'products' && '✨'}
+                    {activeView === 'add-product' && '🎯'}
+                    {activeView === 'scanner' && '🔍'}
+                  </span>
+                </div>
                 <p className="text-gray-600">
                   {activeView === 'overview' && 'Get insights into your inventory performance'}
                   {activeView === 'products' && 'Manage your product catalog'}
@@ -151,7 +170,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   {activeView === 'scanner' && 'Scan product barcodes to find items'}
                 </p>
               </div>
-              <div className="text-4xl">
+              <div className="text-4xl animate-pulse">
                 {activeView === 'overview' && '📊'}
                 {activeView === 'products' && '📦'}
                 {activeView === 'add-product' && '➕'}
