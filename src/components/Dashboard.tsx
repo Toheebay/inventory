@@ -1,89 +1,56 @@
 
-import React, { useState, useMemo } from 'react';
-import { Product, Category, InventoryStats } from '../types/inventory';
+import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import Sidebar from './Sidebar';
 import ProductList from './ProductList';
 import AddProductForm from './AddProductForm';
 import BarcodeScanner from './BarcodeScanner';
 import StatsOverview from './StatsOverview';
-import { toast } from '@/hooks/use-toast';
+import { Product, Category, InventoryStats } from '../types/inventory';
+import { initialCategories, initialProducts } from '../data/inventoryData';
 
-interface DashboardProps {
-  products: Product[];
-  categories: Category[];
-  onAddProduct: (product: Omit<Product, 'id'>) => void;
-  onUpdateProduct: (id: string, product: Partial<Product>) => void;
-  onDeleteProduct: (id: string) => void;
-  onLogout: () => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({
-  products,
-  categories,
-  onAddProduct,
-  onUpdateProduct,
-  onDeleteProduct,
-  onLogout,
-}) => {
+const Dashboard: React.FC = () => {
+  const { signOut, user, isAdmin } = useAuth();
   const [activeView, setActiveView] = useState<'overview' | 'products' | 'add-product' | 'scanner'>('overview');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // For now, using local data - you'll replace this with API calls to your MongoDB
+  const [products] = useState<Product[]>(initialProducts);
+  const [categories] = useState<Category[]>(initialCategories);
+
   // Calculate inventory statistics
-  const stats: InventoryStats = useMemo(() => {
-    const totalProducts = products.length;
-    const totalValue = products.reduce((sum, product) => sum + (product.price * product.quantity), 0);
-    const lowStockItems = products.filter(product => product.quantity <= product.minStockLevel).length;
-    const recentlyAdded = products.filter(product => {
+  const stats: InventoryStats = {
+    totalProducts: products.length,
+    totalValue: products.reduce((sum, product) => sum + (product.price * product.quantity), 0),
+    lowStockItems: products.filter(product => product.quantity <= product.minStockLevel).length,
+    categories: categories.length,
+    recentlyAdded: products.filter(product => {
       const addedDate = new Date(product.dateAdded);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       return addedDate >= weekAgo;
-    }).length;
-
-    return {
-      totalProducts,
-      totalValue,
-      lowStockItems,
-      categories: categories.length,
-      recentlyAdded,
-    };
-  }, [products, categories]);
+    }).length,
+  };
 
   // Filter products based on category and search term
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.categoryId === selectedCategory);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.barcode.includes(searchTerm)
-      );
-    }
-
-    return filtered;
-  }, [products, selectedCategory, searchTerm]);
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
+    const matchesSearch = !searchTerm || 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.barcode.includes(searchTerm);
+    return matchesCategory && matchesSearch;
+  });
 
   const handleBarcodeScanned = (barcode: string) => {
     const product = products.find(p => p.barcode === barcode);
     if (product) {
-      toast({
-        title: "Product Found",
-        description: `${product.name} - Quantity: ${product.quantity}`,
-      });
+      console.log('Product found:', product);
     } else {
-      toast({
-        title: "Product Not Found",
-        description: `No product found with barcode: ${barcode}`,
-        variant: "destructive",
-      });
+      console.log('Product not found for barcode:', barcode);
     }
   };
 
@@ -100,15 +67,15 @@ const Dashboard: React.FC<DashboardProps> = ({
             searchTerm={searchTerm}
             onCategoryChange={setSelectedCategory}
             onSearchChange={setSearchTerm}
-            onUpdateProduct={onUpdateProduct}
-            onDeleteProduct={onDeleteProduct}
+            onUpdateProduct={() => {}} // You'll implement these with API calls
+            onDeleteProduct={() => {}}
           />
         );
       case 'add-product':
         return (
           <AddProductForm
             categories={categories}
-            onAddProduct={onAddProduct}
+            onAddProduct={() => {}} // You'll implement this with API calls
             onCancel={() => setActiveView('products')}
           />
         );
@@ -136,14 +103,16 @@ const Dashboard: React.FC<DashboardProps> = ({
       <Sidebar
         activeView={activeView}
         onViewChange={setActiveView}
-        onLogout={onLogout}
+        onLogout={signOut}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         stats={stats}
+        userEmail={user?.email || ''}
+        isAdmin={isAdmin}
       />
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'} lg:${sidebarCollapsed ? 'ml-16' : 'ml-64'} p-3 sm:p-6`}>
+      <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-12 sm:ml-16' : 'ml-48 sm:ml-64'} p-3 sm:p-6`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-4 sm:mb-8 bg-white/60 backdrop-blur-lg rounded-2xl p-4 sm:p-6 shadow-lg border border-white/20">

@@ -9,6 +9,8 @@ interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
   stats: InventoryStats;
+  userEmail: string;
+  isAdmin: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -18,11 +20,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
   onToggleCollapse,
   stats,
+  userEmail,
+  isAdmin,
 }) => {
   const menuItems = [
     { id: 'overview', label: 'Dashboard', icon: '📊' },
     { id: 'products', label: 'Products', icon: '📦' },
-    { id: 'add-product', label: 'Add Product', icon: '➕' },
+    { id: 'add-product', label: 'Add Product', icon: '➕', adminOnly: true },
     { id: 'scanner', label: 'Scanner', icon: '📱' },
   ];
 
@@ -34,7 +38,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           {!collapsed && (
             <div>
               <h2 className="text-lg sm:text-xl font-bold text-gray-800">Inventory Pro</h2>
-              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Admin Panel</p>
+              <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                {isAdmin ? 'Admin Panel' : 'User Panel'}
+              </p>
             </div>
           )}
           <button
@@ -45,6 +51,25 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* User Info (when not collapsed) */}
+      {!collapsed && (
+        <div className="p-2 sm:p-4 border-b border-gray-200/50">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm">
+                {userEmail.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-800 truncate">{userEmail}</p>
+              <p className="text-xs text-gray-500">
+                {isAdmin ? '👑 Admin' : '👤 User'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats (when not collapsed) */}
       {!collapsed && (
@@ -72,21 +97,26 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* Navigation Menu */}
       <nav className="flex-1 p-2 sm:p-4">
         <ul className="space-y-1 sm:space-y-2">
-          {menuItems.map((item) => (
-            <li key={item.id}>
-              <button
-                onClick={() => onViewChange(item.id as any)}
-                className={`w-full flex items-center px-2 sm:px-3 py-2 sm:py-3 rounded-xl transition-all duration-200 ${
-                  activeView === item.id
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105'
-                    : 'text-gray-700 hover:bg-gray-100 hover:transform hover:scale-105'
-                } ${collapsed ? 'justify-center' : ''}`}
-              >
-                <span className="text-base sm:text-xl mr-2 sm:mr-3">{item.icon}</span>
-                {!collapsed && <span className="font-medium text-xs sm:text-base">{item.label}</span>}
-              </button>
-            </li>
-          ))}
+          {menuItems.map((item) => {
+            // Hide admin-only items from regular users
+            if (item.adminOnly && !isAdmin) return null;
+            
+            return (
+              <li key={item.id}>
+                <button
+                  onClick={() => onViewChange(item.id as any)}
+                  className={`w-full flex items-center px-2 sm:px-3 py-2 sm:py-3 rounded-xl transition-all duration-200 ${
+                    activeView === item.id
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105'
+                      : 'text-gray-700 hover:bg-gray-100 hover:transform hover:scale-105'
+                  } ${collapsed ? 'justify-center' : ''}`}
+                >
+                  <span className="text-base sm:text-xl mr-2 sm:mr-3">{item.icon}</span>
+                  {!collapsed && <span className="font-medium text-xs sm:text-base">{item.label}</span>}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
