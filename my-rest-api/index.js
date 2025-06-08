@@ -2,23 +2,31 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');  // Load .env variables
+const cors = require('cors');      // ✅ Import CORS
+
 dotenv.config();
 
-const authRoutes = require('./routes/auth'); // ✅ Import your route
+const authRoutes = require('./routes/auth'); // ✅ Import auth route
 
 const app = express();
+
+// ✅ Setup CORS middleware
+app.use(cors({
+  origin: 'https://glo-stock-canvas.lovable.app',  // 🔗 Frontend URL
+  credentials: true
+}));
+
+// ✅ Middleware to parse JSON request bodies
 app.use(express.json());
 
-// ✅ connect the route
+// ✅ Connect auth routes
 app.use('/api/auth', authRoutes);
 
-
-// ✅ MongoDB Connection (using Mongoose, not MongoClient from mongodb)
+// ✅ MongoDB Connection using Mongoose
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-
 .then(() => {
   console.log("✅ Connected to MongoDB Atlas");
 })
@@ -26,14 +34,14 @@ mongoose.connect(process.env.MONGO_URI, {
   console.error("❌ MongoDB connection error:", err);
 });
 
-// ✅ Define Schema and Model
+// ✅ Define Mongoose schema and model
 const itemSchema = new mongoose.Schema({
   name: String,
   price: Number
 });
 const Item = mongoose.model('Item', itemSchema);
 
-// ✅ CREATE
+// ✅ CREATE item
 app.post('/api/items', async (req, res) => {
   try {
     const newItem = new Item(req.body);
@@ -44,7 +52,7 @@ app.post('/api/items', async (req, res) => {
   }
 });
 
-// ✅ READ all
+// ✅ READ all items
 app.get('/api/items', async (req, res) => {
   try {
     const items = await Item.find();
@@ -54,7 +62,7 @@ app.get('/api/items', async (req, res) => {
   }
 });
 
-// ✅ READ one
+// ✅ READ one item
 app.get('/api/items/:id', async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
@@ -65,7 +73,7 @@ app.get('/api/items/:id', async (req, res) => {
   }
 });
 
-// ✅ UPDATE
+// ✅ UPDATE item
 app.put('/api/items/:id', async (req, res) => {
   try {
     const updatedItem = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -76,7 +84,7 @@ app.put('/api/items/:id', async (req, res) => {
   }
 });
 
-// ✅ DELETE
+// ✅ DELETE item
 app.delete('/api/items/:id', async (req, res) => {
   try {
     const deletedItem = await Item.findByIdAndDelete(req.params.id);
@@ -87,7 +95,7 @@ app.delete('/api/items/:id', async (req, res) => {
   }
 });
 
-// ✅ Homepage
+// ✅ Home route
 app.get('/', (req, res) => {
   res.send('Welcome to Glo Stock Canvas API (CRUD ready)');
 });
