@@ -1,5 +1,3 @@
-// controllers/authController.js
-
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -22,7 +20,6 @@ const generateToken = (user) => {
 
 const loginUser = (req, res) => {
   const { username, password } = req.body;
-
   const user = users.find(u => u.username === username && u.password === password);
 
   if (!user) {
@@ -30,7 +27,6 @@ const loginUser = (req, res) => {
   }
 
   const token = generateToken(user);
-
   res.json({
     message: 'Login successful',
     token,

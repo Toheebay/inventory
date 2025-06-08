@@ -4,8 +4,14 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');  // Load .env variables
 dotenv.config();
 
+const authRoutes = require('./routes/auth'); // ✅ Import your route
+
 const app = express();
 app.use(express.json());
+
+// ✅ connect the route
+app.use('/api/auth', authRoutes);
+
 
 // ✅ MongoDB Connection (using Mongoose, not MongoClient from mongodb)
 mongoose.connect(process.env.MONGO_URI, {
