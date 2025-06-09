@@ -21,6 +21,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to safely parse JSON responses
+const safeJsonParse = async (response: Response) => {
+  const contentType = response.headers.get('Content-Type');
+  
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    console.error('Non-JSON response received:', text);
+    throw new Error('Server returned non-JSON response');
+  }
+
+  const text = await response.text();
+  
+  if (!text || text.trim() === '') {
+    console.error('Empty response received');
+    throw new Error('Empty response from server');
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('JSON parsing error:', error);
+    console.error('Response text:', text);
+    throw new Error('Invalid JSON response from server');
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,11 +81,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        // Try to get error message from response
+        try {
+          const errorData = await safeJsonParse(response);
+          throw new Error(errorData.error || `Login failed with status ${response.status}`);
+        } catch (parseError) {
+          throw new Error(`Login failed with status ${response.status}`);
+        }
       }
+
+      const data = await safeJsonParse(response);
 
       // Store token and user data
       const authToken = data.token;
@@ -82,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         description: "Welcome back!",
       });
     } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Login Failed",
         description: error.message || "An error occurred during login",
@@ -96,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,17 +141,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        // Try to get error message from response
+        try {
+          const errorData = await safeJsonParse(response);
+          throw new Error(errorData.error || `Registration failed with status ${response.status}`);
+        } catch (parseError) {
+          throw new Error(`Registration failed with status ${response.status}`);
+        }
       }
+
+      const data = await safeJsonParse(response);
 
       toast({
         title: "Registration Successful",
         description: data.message || "Account created successfully. Please check your email for verification.",
       });
     } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration Failed",
         description: error.message || "An error occurred during registration",

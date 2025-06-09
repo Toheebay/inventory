@@ -16,6 +16,32 @@ const getAuthToken = (): string | null => {
   return localStorage.getItem('auth_token');
 };
 
+// Helper function to safely parse JSON responses
+const safeJsonParse = async (response: Response) => {
+  const contentType = response.headers.get('Content-Type');
+  
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await response.text();
+    console.error('Non-JSON response received:', text);
+    throw new Error('Server returned non-JSON response');
+  }
+
+  const text = await response.text();
+  
+  if (!text || text.trim() === '') {
+    console.error('Empty response received');
+    throw new Error('Empty response from server');
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('JSON parsing error:', error);
+    console.error('Response text:', text);
+    throw new Error('Invalid JSON response from server');
+  }
+};
+
 // Generic API request function
 export const apiRequest = async <T = any>(
   endpoint: string,
@@ -35,14 +61,22 @@ export const apiRequest = async <T = any>(
 
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
-
+    
     if (!response.ok) {
-      return {
-        error: data.error || data.message || `Request failed with status ${response.status}`,
-      };
+      // Try to get error message from response
+      try {
+        const errorData = await safeJsonParse(response);
+        return {
+          error: errorData.error || errorData.message || `Request failed with status ${response.status}`,
+        };
+      } catch (parseError) {
+        return {
+          error: `Request failed with status ${response.status}`,
+        };
+      }
     }
 
+    const data = await safeJsonParse(response);
     return { data };
   } catch (error) {
     console.error('API request failed:', error);
