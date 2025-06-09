@@ -1,16 +1,17 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../models/User');
 
-// Nodemailer Transporter
+// ✅ Nodemailer transporter using Gmail (app password required)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER, // Your Gmail address
+    pass: process.env.EMAIL_PASS  // App password generated via Google
   }
 });
 
@@ -23,17 +24,19 @@ router.post('/register', async (req, res) => {
     if (existingUser) return res.status(400).json({ error: 'Email already exists' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
     const user = new User({
       email,
       password: hashedPassword,
-      verified: false
+      isVerified: false,
+      verificationToken
     });
 
     await user.save();
 
-    // Generate verification token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    const verificationLink = `https://yourdomain.com/api/auth/verify?token=${token}`; // <-- Replace with your frontend or deployed domain
+    const verificationLink = `https://yourdomain.com/api/auth/verify?token=${verificationToken}`;
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -48,7 +51,7 @@ router.post('/register', async (req, res) => {
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.error('Email error:', error);
+        console.error('Email sending error:', error);
       } else {
         console.log('Verification email sent: ' + info.response);
       }
@@ -65,18 +68,18 @@ router.get('/verify', async (req, res) => {
   const token = req.query.token;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    const user = await User.findOne({ verificationToken: token });
 
-    if (!user) return res.status(404).send('User not found');
-    if (user.verified) return res.send('Email already verified.');
+    if (!user) return res.status(400).send('Invalid or expired verification link.');
+    if (user.isVerified) return res.send('Email already verified.');
 
-    user.verified = true;
+    user.isVerified = true;
+    user.verificationToken = undefined;
     await user.save();
 
     res.send('Email successfully verified.');
   } catch (err) {
-    res.status(400).send('Invalid or expired verification link.');
+    res.status(500).send('An error occurred during email verification.');
   }
 });
 
@@ -91,7 +94,7 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid password' });
 
-    if (!user.verified) {
+    if (!user.isVerified) {
       return res.status(403).json({ error: 'Please verify your email before logging in.' });
     }
 
