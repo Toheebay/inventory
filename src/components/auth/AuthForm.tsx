@@ -23,13 +23,33 @@ const AuthForm = () => {
     confirmPassword: ''
   });
 
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    
+    // Basic validation
+    if (!loginForm.email || !loginForm.password) {
+      setErrors({ general: 'Please fill in all fields' });
+      return;
+    }
+
+    if (!validateEmail(loginForm.email)) {
+      setErrors({ email: 'Please enter a valid email address' });
+      return;
+    }
+
     setIsLoading(true);
     try {
       await signIn(loginForm.email, loginForm.password);
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      setErrors({ general: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -37,14 +57,41 @@ const AuthForm = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signupForm.password !== signupForm.confirmPassword) {
+    setErrors({});
+
+    // Validation
+    if (!signupForm.email || !signupForm.password || !signupForm.confirmPassword) {
+      setErrors({ general: 'Please fill in all required fields' });
       return;
     }
+
+    if (!validateEmail(signupForm.email)) {
+      setErrors({ email: 'Please enter a valid email address' });
+      return;
+    }
+
+    if (signupForm.password.length < 6) {
+      setErrors({ password: 'Password must be at least 6 characters long' });
+      return;
+    }
+
+    if (signupForm.password !== signupForm.confirmPassword) {
+      setErrors({ confirmPassword: 'Passwords do not match' });
+      return;
+    }
+
     setIsLoading(true);
     try {
       await signUp(signupForm.email, signupForm.password, signupForm.fullName);
-    } catch (error) {
-      console.error('Signup error:', error);
+      // Reset form on successful signup
+      setSignupForm({
+        email: '',
+        password: '',
+        fullName: '',
+        confirmPassword: ''
+      });
+    } catch (error: any) {
+      setErrors({ general: error.message });
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +124,12 @@ const AuthForm = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {errors.general && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{errors.general}</p>
+              </div>
+            )}
+
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -93,8 +146,10 @@ const AuthForm = () => {
                       placeholder="Enter your email"
                       value={loginForm.email}
                       onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                      className={errors.email ? 'border-red-500' : ''}
                       required
                     />
+                    {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -116,7 +171,7 @@ const AuthForm = () => {
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name">Full Name (Optional)</Label>
                     <Input
                       id="signup-name"
                       type="text"
@@ -133,19 +188,23 @@ const AuthForm = () => {
                       placeholder="Enter your email"
                       value={signupForm.email}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
+                      className={errors.email ? 'border-red-500' : ''}
                       required
                     />
+                    {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="Create a password"
+                      placeholder="Create a password (min 6 characters)"
                       value={signupForm.password}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
+                      className={errors.password ? 'border-red-500' : ''}
                       required
                     />
+                    {errors.password && <p className="text-red-500 text-xs">{errors.password}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirm Password</Label>
@@ -155,8 +214,10 @@ const AuthForm = () => {
                       placeholder="Confirm your password"
                       value={signupForm.confirmPassword}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      className={errors.confirmPassword ? 'border-red-500' : ''}
                       required
                     />
+                    {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword}</p>}
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Creating Account...' : 'Create Account'}
