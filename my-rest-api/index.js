@@ -14,14 +14,16 @@ const app = express();
 
 // ✅ Setup CORS middleware
 app.use(cors({
-  origin: 'https://invehtry.netlify.app/',  // 🔗 Frontend URL
-  credentials: true
+  origin: ['http://localhost:5173', 'https://glo-stock-canvas.lovable.app', 'https://invehtry.netlify.app'],  // 🔗 Frontend URLs
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // ✅ Middleware to parse JSON request bodies
 app.use(express.json());
 
-// ✅ Connect auth routes
+// ✅ Connect auth routes BEFORE other routes
 app.use('/api/auth', authRoutes);
 
 // ✅ MongoDB Connection using Mongoose
@@ -160,4 +162,5 @@ app.listen(port, () => {
   console.log(`🚀 Backend running at http://localhost:${port}`);
   console.log(`📧 Make sure to set EMAIL_USER and EMAIL_PASS environment variables for email verification`);
   console.log(`🔑 Make sure to set JWT_SECRET environment variable for authentication`);
+  console.log(`📊 Make sure to set MONGO_URI environment variable for database connection`);
 });

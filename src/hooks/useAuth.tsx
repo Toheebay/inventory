@@ -73,6 +73,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Attempting to sign in to:', 'http://localhost:8080/api/auth/login');
+      
       const response = await fetch('http://localhost:8080/api/auth/login', {
         method: 'POST',
         headers: {
@@ -81,7 +83,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('Login response status:', response.status);
+      console.log('Login response headers:', response.headers);
+
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Authentication service not available. Please ensure the backend server is running on port 8080.');
+        }
+        
         // Try to get error message from response
         try {
           const errorData = await safeJsonParse(response);
@@ -129,6 +138,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
     try {
+      console.log('Attempting to register at:', 'http://localhost:8080/api/auth/register');
+      
       const response = await fetch('http://localhost:8080/api/auth/register', {
         method: 'POST',
         headers: {
@@ -141,7 +152,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }),
       });
 
+      console.log('Register response status:', response.status);
+      console.log('Register response headers:', response.headers);
+
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Registration service not available. Please ensure the backend server is running on port 8080.');
+        }
+        
         // Try to get error message from response
         try {
           const errorData = await safeJsonParse(response);
