@@ -14,7 +14,7 @@ const app = express();
 
 // ✅ Setup CORS middleware
 app.use(cors({
-  origin: ['https://glo-stock-canvas.lovable.app', 'http://localhost:3000', 'http://localhost:5173'],  // 🔗 Frontend URLs
+  origin: 'https://invehtry.netlify.app/',  // 🔗 Frontend URL
   credentials: true
 }));
 
