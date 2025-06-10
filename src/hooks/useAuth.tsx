@@ -24,29 +24,66 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Backend URL - update this if your backend runs on a different port
 const BACKEND_URL = 'http://localhost:8080';
 
-// Helper function to safely parse JSON responses
+// Enhanced helper function to safely parse JSON responses with better debugging
 const safeJsonParse = async (response: Response) => {
+  console.log('Response status:', response.status);
+  console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+  
   const contentType = response.headers.get('Content-Type');
+  console.log('Content-Type:', contentType);
   
-  if (!contentType || !contentType.includes('application/json')) {
-    const text = await response.text();
-    console.error('Non-JSON response received:', text);
-    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
-  }
-
+  // Get the raw text first
   const text = await response.text();
+  console.log('Raw response text:', text);
+  console.log('Response text length:', text.length);
   
+  // Check if response is empty
   if (!text || text.trim() === '') {
-    console.error('Empty response received');
-    throw new Error('Empty response from server');
+    console.error('Empty response received from server');
+    throw new Error('Server returned an empty response. Please check if the backend server is running.');
   }
 
+  // Check if content type indicates JSON
+  if (!contentType || !contentType.includes('application/json')) {
+    console.error('Non-JSON response received. Content-Type:', contentType);
+    console.error('Response text:', text.substring(0, 200));
+    throw new Error(`Server returned non-JSON response. Expected JSON but got: ${contentType || 'unknown'}. Response: ${text.substring(0, 100)}`);
+  }
+
+  // Try to parse JSON
   try {
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+    console.log('Successfully parsed JSON:', parsed);
+    return parsed;
   } catch (error) {
-    console.error('JSON parsing error:', error);
-    console.error('Response text:', text);
-    throw new Error('Invalid JSON response from server');
+    console.error('JSON parsing failed:', error);
+    console.error('Text that failed to parse:', text);
+    throw new Error(`Invalid JSON response from server. Parse error: ${error.message}. Response text: ${text.substring(0, 100)}`);
+  }
+};
+
+// Function to check if backend is reachable
+const checkBackendHealth = async () => {
+  try {
+    console.log('Checking backend health at:', `${BACKEND_URL}/api/health`);
+    const response = await fetch(`${BACKEND_URL}/api/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await safeJsonParse(response);
+      console.log('Backend health check passed:', data);
+      return true;
+    } else {
+      console.error('Backend health check failed with status:', response.status);
+      return false;
+    }
+  } catch (error) {
+    console.error('Backend health check error:', error);
+    return false;
   }
 };
 
@@ -76,8 +113,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
+      // First check if backend is reachable
+      const isBackendHealthy = await checkBackendHealth();
+      if (!isBackendHealthy) {
+        throw new Error('Backend server is not responding. Please ensure the backend server is running on port 8080.');
+      }
+
       const loginUrl = `${BACKEND_URL}/api/auth/login`;
       console.log('Attempting to sign in to:', loginUrl);
+      console.log('Request payload:', { email, password: '***' });
       
       const response = await fetch(loginUrl, {
         method: 'POST',
@@ -87,24 +131,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('Login response status:', response.status);
-      console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Login response received');
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Authentication service not available. Please ensure the backend server is running on port 8080.');
-        }
+        console.error('Login request failed with status:', response.status);
         
         // Try to get error message from response
         try {
           const errorData = await safeJsonParse(response);
           throw new Error(errorData.error || errorData.message || `Login failed with status ${response.status}`);
         } catch (parseError) {
-          throw new Error(`Login failed with status ${response.status}`);
+          console.error('Failed to parse error response:', parseError);
+          throw new Error(`Login failed with status ${response.status}. Server may not be responding correctly.`);
         }
       }
 
       const data = await safeJsonParse(response);
+      console.log('Login successful, received data:', data);
 
       // Store token and user data
       const authToken = data.token;
@@ -142,8 +185,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
     try {
+      // First check if backend is reachable
+      const isBackendHealthy = await checkBackendHealth();
+      if (!isBackendHealthy) {
+        throw new Error('Backend server is not responding. Please ensure the backend server is running on port 8080.');
+      }
+
       const registerUrl = `${BACKEND_URL}/api/auth/register`;
       console.log('Attempting to register at:', registerUrl);
+      console.log('Request payload:', { email, password: '***', full_name: fullName });
       
       const response = await fetch(registerUrl, {
         method: 'POST',
@@ -157,24 +207,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }),
       });
 
-      console.log('Register response status:', response.status);
-      console.log('Register response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('Register response received');
 
       if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Registration service not available. Please ensure the backend server is running on port 8080.');
-        }
+        console.error('Registration request failed with status:', response.status);
         
         // Try to get error message from response
         try {
           const errorData = await safeJsonParse(response);
           throw new Error(errorData.error || errorData.message || `Registration failed with status ${response.status}`);
         } catch (parseError) {
-          throw new Error(`Registration failed with status ${response.status}`);
+          console.error('Failed to parse error response:', parseError);
+          throw new Error(`Registration failed with status ${response.status}. Server may not be responding correctly.`);
         }
       }
 
       const data = await safeJsonParse(response);
+      console.log('Registration successful, received data:', data);
 
       toast({
         title: "Registration Successful",
