@@ -21,6 +21,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Backend URL - update this if your backend runs on a different port
+const BACKEND_URL = 'http://localhost:8080';
+
 // Helper function to safely parse JSON responses
 const safeJsonParse = async (response: Response) => {
   const contentType = response.headers.get('Content-Type');
@@ -28,7 +31,7 @@ const safeJsonParse = async (response: Response) => {
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
     console.error('Non-JSON response received:', text);
-    throw new Error('Server returned non-JSON response');
+    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
   }
 
   const text = await response.text();
@@ -73,9 +76,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      console.log('Attempting to sign in to:', 'http://localhost:8080/api/auth/login');
+      const loginUrl = `${BACKEND_URL}/api/auth/login`;
+      console.log('Attempting to sign in to:', loginUrl);
       
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       console.log('Login response status:', response.status);
-      console.log('Login response headers:', response.headers);
+      console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -94,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Try to get error message from response
         try {
           const errorData = await safeJsonParse(response);
-          throw new Error(errorData.error || `Login failed with status ${response.status}`);
+          throw new Error(errorData.error || errorData.message || `Login failed with status ${response.status}`);
         } catch (parseError) {
           throw new Error(`Login failed with status ${response.status}`);
         }
@@ -138,9 +142,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, fullName?: string) => {
     setLoading(true);
     try {
-      console.log('Attempting to register at:', 'http://localhost:8080/api/auth/register');
+      const registerUrl = `${BACKEND_URL}/api/auth/register`;
+      console.log('Attempting to register at:', registerUrl);
       
-      const response = await fetch('http://localhost:8080/api/auth/register', {
+      const response = await fetch(registerUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       console.log('Register response status:', response.status);
-      console.log('Register response headers:', response.headers);
+      console.log('Register response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -163,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Try to get error message from response
         try {
           const errorData = await safeJsonParse(response);
-          throw new Error(errorData.error || `Registration failed with status ${response.status}`);
+          throw new Error(errorData.error || errorData.message || `Registration failed with status ${response.status}`);
         } catch (parseError) {
           throw new Error(`Registration failed with status ${response.status}`);
         }

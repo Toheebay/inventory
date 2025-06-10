@@ -1,20 +1,5 @@
 
-// API utility functions for making authenticated requests to your MongoDB backend
-
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-backend-url.com' // Replace with your actual backend URL
-  : 'http://localhost:8080'; // Your local backend URL
-
-interface ApiResponse<T = any> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-// Get auth token from localStorage
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('auth_token');
-};
+const API_BASE_URL = 'http://localhost:8080/api';
 
 // Helper function to safely parse JSON responses
 const safeJsonParse = async (response: Response) => {
@@ -23,7 +8,7 @@ const safeJsonParse = async (response: Response) => {
   if (!contentType || !contentType.includes('application/json')) {
     const text = await response.text();
     console.error('Non-JSON response received:', text);
-    throw new Error('Server returned non-JSON response');
+    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
   }
 
   const text = await response.text();
@@ -42,74 +27,55 @@ const safeJsonParse = async (response: Response) => {
   }
 };
 
-// Generic API request function
-export const apiRequest = async <T = any>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> => {
-  const token = getAuthToken();
-  const url = `${API_BASE_URL}${endpoint}`;
+export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('auth_token');
+  
+  const defaultHeaders: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
 
   const config: RequestInit = {
+    ...options,
     headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...defaultHeaders,
       ...options.headers,
     },
-    ...options,
   };
 
   try {
-    const response = await fetch(url, config);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
     if (!response.ok) {
-      // Try to get error message from response
+      if (response.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        window.location.reload();
+        throw new Error('Session expired. Please log in again.');
+      }
+      
       try {
         const errorData = await safeJsonParse(response);
-        return {
-          error: errorData.error || errorData.message || `Request failed with status ${response.status}`,
-        };
+        throw new Error(errorData.error || errorData.message || `Request failed with status ${response.status}`);
       } catch (parseError) {
-        return {
-          error: `Request failed with status ${response.status}`,
-        };
+        throw new Error(`Request failed with status ${response.status}`);
       }
     }
 
-    const data = await safeJsonParse(response);
-    return { data };
-  } catch (error) {
-    console.error('API request failed:', error);
-    return {
-      error: error instanceof Error ? error.message : 'Network error occurred',
-    };
+    return await safeJsonParse(response);
+  } catch (error: any) {
+    console.error('API request error:', error);
+    throw error;
   }
 };
 
-// Product API functions
-export const productApi = {
-  getAll: () => apiRequest('/api/items'),
-  getById: (id: string) => apiRequest(`/api/items/${id}`),
-  create: (product: any) => apiRequest('/api/items', {
-    method: 'POST',
-    body: JSON.stringify(product),
-  }),
-  update: (id: string, product: any) => apiRequest(`/api/items/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(product),
-  }),
-  delete: (id: string) => apiRequest(`/api/items/${id}`, {
-    method: 'DELETE',
-  }),
-};
-
-// User API functions (for when you implement user management)
-export const userApi = {
-  getProfile: (id: string) => apiRequest(`/api/users/${id}`),
-  updateProfile: (id: string, userData: any) => apiRequest(`/api/users/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(userData),
-  }),
-};
-
-export default apiRequest;
+// Specific API functions
+export const getItems = () => apiRequest('/items');
+export const createItem = (item: any) => apiRequest('/items', { method: 'POST', body: JSON.stringify(item) });
+export const updateItem = (id: string, item: any) => apiRequest(`/items/${id}`, { method: 'PUT', body: JSON.stringify(item) });
+export const deleteItem = (id: string) => apiRequest(`/items/${id}`, { method: 'DELETE' });
+export const getUser = (id: string) => apiRequest(`/users/${id}`);

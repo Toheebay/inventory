@@ -1,4 +1,3 @@
-
 // server.js
 const express = require('express');
 const mongoose = require('mongoose');
@@ -36,6 +35,7 @@ mongoose.connect(process.env.MONGO_URI, {
 })
 .catch(err => {
   console.error("❌ MongoDB connection error:", err);
+  process.exit(1);
 });
 
 // ✅ Define Mongoose schema and model
@@ -157,10 +157,15 @@ app.get('/api/health', (req, res) => {
 });
 
 // ✅ Start server
-const port = process.env.PORT || 8080;
+const port = 8080; // Force port 8080 to match frontend
 app.listen(port, () => {
   console.log(`🚀 Backend running at http://localhost:${port}`);
-  console.log(`📧 Make sure to set EMAIL_USER and EMAIL_PASS environment variables for email verification`);
-  console.log(`🔑 Make sure to set JWT_SECRET environment variable for authentication`);
-  console.log(`📊 Make sure to set MONGO_URI environment variable for database connection`);
+  console.log(`📧 Email configuration: ${process.env.EMAIL_USER ? '✅' : '❌'}`);
+  console.log(`🔑 JWT Secret: ${process.env.JWT_SECRET ? '✅' : '❌'}`);
+  console.log(`📊 MongoDB: ${process.env.MONGO_URI ? '✅' : '❌'}`);
+  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);
+  
+  if (!process.env.MONGO_URI || !process.env.JWT_SECRET || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('❌ Missing required environment variables!');
+  }
 });
